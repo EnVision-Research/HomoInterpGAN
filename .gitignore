@@ -1,0 +1,8 @@
+*
+!*/
+!*.py
+!*.md
+!examples/input.png
+!examples/input.mp4
+!/images/*
+!.gitignore
