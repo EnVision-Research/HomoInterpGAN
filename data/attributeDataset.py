@@ -12,7 +12,8 @@ import os
 import torchvision as tv
 from util import util
 from util.logger import logger
-
+import cv2
+import random
 from tqdm import tqdm
 
 log = logger()
@@ -28,78 +29,117 @@ forward_transform = tv.transforms.Compose(
     ])
 
 
-class Dataset(base_dataset.BaseDataset):
-    def __init__(self, image_list, transform=forward_transform, scale=(448, 448), crop_size=(0, 0),
-                 bias=(0, 0),
-                 csv_path='analysis/list_attr_celeba.csv', sep=' ', scale_attribute=True):
-        super(Dataset, self).__init__()
-        self.files = []
-        supported_format = ['jpg', 'png', 'jpeg']
-        for image_now in image_list:  # filter out files that are not image
-            format = image_now.split('.')[-1]
-            format = format.lower()
-            is_image = False
-            for sf in supported_format:
-                if format == sf:
-                    is_image = True
-                    break
-            if is_image:
-                self.files += [image_now]
+# class Dataset(base_dataset.BaseDataset):
+#     def __init__(self, image_list, transform=forward_transform, scale=(128, 128), crop_size=(160, 160),
+#                  bias=(0, 15),
+#                  csv_path='analysis/list_attr_celeba.csv', sep=' ', scale_attribute=True):
+#         super(Dataset, self).__init__()
+#         self.files = []
+#         supported_format = ['jpg', 'png', 'jpeg']
+#         for image_now in image_list:  # filter out files that are not image
+#             format = image_now.split('.')[-1]
+#             format = format.lower()
+#             is_image = False
+#             for sf in supported_format:
+#                 if format == sf:
+#                     is_image = True
+#                     break
+#             if is_image:
+#                 self.files += [image_now]
+#
+#         print('* Total Images: {}'.format(len(self.files)))
+#         self.transform = transform
+#         self.scale = scale
+#         self.bias = bias
+#         self.frame = pd.read_csv(csv_path, sep=sep)
+#         self.crop_size = crop_size
+#         self.scale_attribute = scale_attribute
+#
+#     def __getitem__(self, index):
+#         # print(self.files[index])
+#         img = util.readRGB(self.files[index]).astype(np.float32)
+#         if self.crop_size[0] > 0:
+#             img = util.center_crop(img, self.crop_size, self.bias)
+#         shape = img.shape
+#         if self.scale[0] > 0:
+#             img = scipy.misc.imresize(img, [self.scale[0], self.scale[1]])
+#         img = self.transform(img)
+#         image_name = os.path.basename(self.files[index])
+#         attribute = self.frame[self.frame['name'] == image_name]
+#         attribute = attribute.values[0][1:].astype(np.float32)
+#         if self.scale_attribute:
+#             attribute = (attribute + 1) / 2  # scale the attribute to range form {0,1}
+#         # log(img)
+#         return img, attribute, self.files[index], shape
+#
+#     def __len__(self):
+#         return len(self.files)
+#
+#
+# class Dataset_testing(Dataset):
+#     def __getitem__(self, index):
+#         img = util.readRGB(self.files[index]).astype(np.float32)
+#         if self.crop_size[0] > 0:
+#             img = util.center_crop(img, self.crop_size, self.bias)
+#         shape = img.shape
+#         if self.scale[0] > 0:
+#             img = scipy.misc.imresize(img, [self.scale[0], self.scale[1]])
+#         img = self.transform(img)
+#         return img, self.files[index], shape
 
-        print('* Total Images: {}'.format(len(self.files)))
+
+class Dataset_testing(base_dataset.BaseDataset):
+    '''
+    compared with Datset, now we can use the attributes to filter images
+    '''
+
+    def __init__(self, image_list,
+                 transform=forward_transform, scale=(128, 128), crop_size=(160, 160), bias=(0, 15)):
+        super(Dataset_testing, self).__init__()
+        self.files = image_list
+        # print(self.files[:5])
         self.transform = transform
         self.scale = scale
-        self.bias = bias
-        self.frame = pd.read_csv(csv_path, sep=sep)
         self.crop_size = crop_size
-        self.scale_attribute = scale_attribute
+        self.bias = bias
+
+        from util import faceflip
+        self.faceflip = faceflip
 
     def __getitem__(self, index):
-        # print(self.files[index])
+        print(self.files[index])
         img = util.readRGB(self.files[index]).astype(np.float32)
+        orientation = self.faceflip.get_orientation(img.astype(np.uint8))
+        image_name = os.path.basename(self.files[index])
+        if orientation == 'right':
+            img = cv2.flip(img, 1)
+        elif orientation == 'left':
+            pass
         if self.crop_size[0] > 0:
             img = util.center_crop(img, self.crop_size, self.bias)
-        shape = img.shape
         if self.scale[0] > 0:
             img = scipy.misc.imresize(img, [self.scale[0], self.scale[1]])
         img = self.transform(img)
-        image_name = os.path.basename(self.files[index])
-        attribute = self.frame[self.frame['name'] == image_name]
-        attribute = attribute.values[0][1:].astype(np.float32)
-        if self.scale_attribute:
-            attribute = (attribute + 1) / 2  # scale the attribute to range form {0,1}
-        # log(img)
-        return img, attribute, self.files[index], shape
+        return img, image_name
 
     def __len__(self):
         return len(self.files)
-
-
-class Dataset_testing(Dataset):
-    def __getitem__(self, index):
-        img = util.readRGB(self.files[index]).astype(np.float32)
-        if self.crop_size[0] > 0:
-            img = util.center_crop(img, self.crop_size, self.bias)
-        shape = img.shape
-        if self.scale[0] > 0:
-            img = scipy.misc.imresize(img, [self.scale[0], self.scale[1]])
-        img = self.transform(img)
-        return img, self.files[index], shape
-
 
 class Dataset_testing_filtered(base_dataset.BaseDataset):
     '''
     compared with Datset, now we can use the attributes to filter images
     '''
 
-    def __init__(self, image_list, attributes=None,
-                 transform=forward_transform, scale=(448, 448), crop_size=(0, 0), bias=(0, 0),
-                 csv_path='analysis/list_attr_celeba.csv', sep=' '):
+    def __init__(self, base_dir, attributes=None,
+                 transform=forward_transform, scale=(128, 128), crop_size=(160, 160), bias=(0, 15),
+                 csv_path='info/celeba-with-orientation.csv', n_samples=10):
         super(Dataset_testing_filtered, self).__init__()
-        frame = pd.read_csv(csv_path, sep=sep)
+        frame = pd.read_csv(csv_path)
+        frame = frame[frame['orientation'] != 'unknown']
+        self.orientation = pd.concat((frame['name'], frame['orientation']), axis=1)
+        self.orientation = self.orientation.set_index('name').to_dict()['orientation']
         if attributes is not None:
             attributes = attributes.split(',')
-            print(attributes)
             for attr in attributes:
                 if attr[:3] == 'NOT':
                     frame = frame[frame[attr[3:]] <= 0]
@@ -107,28 +147,35 @@ class Dataset_testing_filtered(base_dataset.BaseDataset):
                     frame = frame[frame[attr] == 1]
         # filter out the image list by frame
         filtered_names = frame['name'].tolist()
-        image_list = [tmp for tmp in image_list if os.path.basename(tmp) in filtered_names]
-        image_list = sorted(image_list)
-        self.files = image_list
+        # image_list = [tmp for tmp in image_list if os.path.basename(tmp) in filtered_names]
+        # image_list = sorted(image_list)
+        self.files = [os.path.join(base_dir, tmp) for tmp in filtered_names]
+        random.shuffle(self.files)
+        self.files = self.files[:n_samples]
+        # print(self.files[:5])
         self.transform = transform
         self.scale = scale
         self.crop_size = crop_size
         self.bias = bias
 
     def __getitem__(self, index):
+        print(self.files[index])
         img = util.readRGB(self.files[index]).astype(np.float32)
-        img = util.center_crop(img, self.crop_size, self.bias)
-        shape = img.shape
+        image_name = os.path.basename(self.files[index])
+        orientation = self.orientation[image_name]
+        if orientation == 'right':
+            img = cv2.flip(img, 1)
+        elif orientation == 'left':
+            pass
+        if self.crop_size[0] > 0:
+            img = util.center_crop(img, self.crop_size, self.bias)
         if self.scale[0] > 0:
             img = scipy.misc.imresize(img, [self.scale[0], self.scale[1]])
-        # img = img[self.crop_size[0]:shape[0] - self.crop_size[0], self.crop_size[1]:shape[1] - self.crop_size[1], :]
-        # shape = img.shape
         img = self.transform(img)
-        return img, self.files[index], shape
+        return img
 
     def __len__(self):
         return len(self.files)
-
 
 
 class GrouppedAttrDataset(base_dataset.BaseDataset):
@@ -142,8 +189,8 @@ class GrouppedAttrDataset(base_dataset.BaseDataset):
     '''
 
     def __init__(self, image_list, attributes, transform=forward_transform, scale=(128, 128), crop_size=(160, 160),
-                 bias=(0, 0),
-                 csv_path='analysis/list_attr_celeba.csv', csv_split=','):
+                 bias=(0, 15),
+                 csv_path='info/celeba-with-orientation.csv', csv_split=','):
         super(GrouppedAttrDataset, self).__init__()
         self.files = []
         supported_format = ['jpg', 'png', 'jpeg']
@@ -163,6 +210,8 @@ class GrouppedAttrDataset(base_dataset.BaseDataset):
         self.scale = scale
         self.bias = bias
         self.frame = pd.read_csv(csv_path, sep=csv_split)
+        self.orientation = pd.concat((self.frame['name'], self.frame['orientation']), axis=1)
+        self.orientation = self.orientation.set_index('name').to_dict()['orientation']
         self.crop_size = crop_size
 
         # parse the "attribtues"
@@ -192,13 +241,21 @@ class GrouppedAttrDataset(base_dataset.BaseDataset):
         try:
             # print(self.files[index])
             img = util.readRGB(self.files[index]).astype(np.float32)
+            image_name = os.path.basename(self.files[index])
+            orientation = self.orientation[image_name]
+            if orientation == 'right':
+                img = cv2.flip(img, 1)
+            elif orientation == 'left':
+                pass
+            else:
+                raise RuntimeError
+
             if self.crop_size[0] > 0:
                 img = util.center_crop(img, self.crop_size, self.bias)
             if self.scale[0] > 0:
                 img = scipy.misc.imresize(img, [self.scale[0], self.scale[1]])
             # img = img[self.crop_size[0]:shape[0] - self.crop_size[0], self.crop_size[1]:shape[1] - self.crop_size[1], :]
             img = self.transform(img)
-            image_name = os.path.basename(self.files[index])
             attribute = self.frame[self.frame['name'] == image_name]
             attribute = attribute.values[0][1:]
             attribute = tuple(attribute)
@@ -209,4 +266,3 @@ class GrouppedAttrDataset(base_dataset.BaseDataset):
 
     def __len__(self):
         return len(self.files)
-

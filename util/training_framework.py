@@ -16,7 +16,7 @@ log = logger(True)
 
 
 class TrainEngine(object):
-    def __init__(self, dataset, optimizer, batch_size, data_adapter=None, num_workers=4, recover_step_epoch=True):
+    def __init__(self, dataset, optimizer, batch_size, data_adapter=None, num_workers=8, recover_step_epoch=True):
         super(TrainEngine, self).__init__()
         self.dataset = dataset
         self.dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
@@ -50,7 +50,7 @@ class TrainEngine(object):
                     tqdm.write(self.optimizer.print_current_errors(e, iter, record_file=self.optimizer.opt.save_dir,
                                                                    print_msg=False))
                     self.optimizer.add_summary(global_step)
-                if (global_step) % 100 == 0:
+                if (global_step) % 1000 == 0:
                     log('save samples ', global_step)
                     self.optimizer.save_samples(global_step)
                 if global_step > 0 and global_step % 2000 == 0:
@@ -61,8 +61,8 @@ class TrainEngine(object):
                     global_step_epoch['global_step'] = global_step
                     global_step_epoch['epoch'] = e
                     yaml.dump(global_step_epoch, f, default_flow_style=False)
-            # if e % 5 == 0 and e > 0:
-            #     self.optimizer.save(e)
+            if e % 10 == 0 and e > 0:
+                self.optimizer.save(e)
             # self.optimizer.save(e)
             self.optimizer.add_summary_heavy(e)
         self.optimizer.save()

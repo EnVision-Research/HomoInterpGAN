@@ -294,4 +294,93 @@ class VGG(nn.Module, BaseModel):
         return features_1, features_2, features_3
 
 
+class Vgg_recon_noskip(nn.Module):
+    def __init__(self, drop_rate=0, norm='batch'):
+        super(Vgg_recon_noskip, self).__init__()
 
+        self.recon5 = _PoolingBlock(3, 512, 512, drop_rate=drop_rate, norm=norm)
+        self.upool4 = _TransitionUp(512, 512, norm=norm)
+        self.upsample4 = _Upsample(512, 512, norm=norm)
+        # self.recon4 = _PoolingBlock(3, 1024, 512, drop_rate = drop_rate)
+        self.recon4 = _PoolingBlock(3, 512, 512, drop_rate=drop_rate, norm=norm)
+        self.upool3 = _TransitionUp(512, 256, norm=norm)
+        self.upsample3 = _Upsample(512, 256, norm=norm)
+        self.recon3 = _PoolingBlock(3, 256, 256, drop_rate=drop_rate, norm=norm)
+        self.upool2 = _TransitionUp(256, 128, norm=norm)
+        self.upsample2 = _Upsample(256, 128, norm=norm)
+        self.recon2 = _PoolingBlock(2, 128, 128, drop_rate=drop_rate, norm=norm)
+        self.upool1 = _TransitionUp(128, 64, norm=norm)
+        self.upsample1 = _Upsample(128, 64, norm=norm)
+        self.recon1 = _PoolingBlock(1, 64, 64, drop_rate=drop_rate, norm=norm)
+        self.recon0 = nn.Conv2d(64, 3, kernel_size=3, padding=1)
+
+    def forward(self, features_3):
+        # print('fy', len(fy))
+
+        recon5 = self.recon5(features_3)
+        recon5 = nn.functional.upsample(recon5, scale_factor=2, mode='bilinear')
+        upool4 = self.upsample4(recon5)
+
+        recon4 = self.recon4(upool4)
+        recon4 = nn.functional.upsample(recon4, scale_factor=2, mode='bilinear')
+        upool3 = self.upsample3(recon4)
+
+        recon3 = self.recon3(upool3)
+        recon3 = nn.functional.upsample(recon3, scale_factor=2, mode='bilinear')
+        upool2 = self.upsample2(recon3)
+
+        recon2 = self.recon2(upool2)
+        recon2 = nn.functional.upsample(recon2, scale_factor=2, mode='bilinear')
+        upool1 = self.upsample1(recon2)
+
+        recon1 = self.recon1(upool1)
+        recon0 = self.recon0(recon1)
+        return recon0
+
+class _PoolingBlock(nn.Sequential):
+    def __init__(self, n_convs, n_input_filters, n_output_filters, drop_rate, norm='batch'):
+        super(_PoolingBlock, self).__init__()
+        if norm == 'batch':
+            norm_fn = nn.BatchNorm2d
+        elif norm == 'instance':
+            norm_fn = nn.InstanceNorm2d
+        else:
+            raise NotImplemented
+        for i in range(n_convs):
+            self.add_module('conv.%d' % (i + 1),
+                            nn.Conv2d(n_input_filters if i == 0 else n_output_filters, n_output_filters, kernel_size=3,
+                                      padding=1))
+            # self.add_module('norm.%d' % (i+1), nn.BatchNorm2d(n_output_filters)) # xtao
+            self.add_module('norm.%d' % (i + 1), norm_fn(n_output_filters))
+            self.add_module('relu.%d' % (i + 1), nn.ReLU(inplace=True))
+            if drop_rate > 0:
+                self.add_module('drop.%d' % (i + 1), nn.Dropout(p=drop_rate))
+
+
+class _TransitionUp(nn.Sequential):
+    def __init__(self, n_input_filters, n_output_filters, norm='batch'):
+        super(_TransitionUp, self).__init__()
+        if norm == 'batch':
+            norm_fn = nn.BatchNorm2d
+        elif norm == 'instance':
+            norm_fn = nn.InstanceNorm2d
+        else:
+            raise NotImplemented
+        self.add_module('unpool.conv',
+                        nn.ConvTranspose2d(n_input_filters, n_output_filters, kernel_size=4, stride=2, padding=1))
+        # self.add_module('interp.conv', nn.Conv2d(n_input_filters, n_output_filters, kernel_size=3, padding=1))
+        self.add_module('unpool.norm', nn.BatchNorm2d(n_output_filters))
+
+
+class _Upsample(nn.Sequential):
+    def __init__(self, n_input_filters, n_output_filters, norm='batch'):
+        super(_Upsample, self).__init__()
+        if norm == 'batch':
+            norm_fn = nn.BatchNorm2d
+        elif norm == 'instance':
+            norm_fn = nn.InstanceNorm2d
+        else:
+            raise NotImplemented
+        # self.add_module('unpool.conv', nn.ConvTranspose2d(n_input_filters, n_output_filters, kernel_size=4, stride=2, padding=1))
+        self.add_module('interp.conv', nn.Conv2d(n_input_filters, n_output_filters, kernel_size=3, padding=1))
+        self.add_module('interp.norm', nn.BatchNorm2d(n_output_filters))

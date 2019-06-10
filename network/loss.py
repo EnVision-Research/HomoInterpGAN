@@ -25,14 +25,16 @@ def classification_loss_list(logit, target):
 class perceptural_loss(nn.Module):
     def __init__(self):
         super(perceptural_loss, self).__init__()
-        self.vgg = base_network.VGG(pretrained=True).cuda()
-        self.vgg = nn.DataParallel(self.vgg)
+        self.vgg = base_network.VGG(pretrained=True).eval().cuda()
+        self.vgg.features_1 = nn.DataParallel(self.vgg.features_1)
         self.mse = nn.MSELoss()
 
     def forward(self, x, y):
-        feat_x, _, _ = self.vgg(x)
+        # feat_x, _, _ = self.vgg(x)
         # feat_x = feat_x[0]
-        feat_y, _, _ = self.vgg(y)
+        # feat_y, _, _ = self.vgg(y)
         # feat_y = feat_y[0]
+        feat_x = self.vgg.features_1(x)
+        feat_y = self.vgg.features_1(y)
         loss = self.mse(feat_x, feat_y.detach())
         return loss

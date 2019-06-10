@@ -11,7 +11,6 @@ from util import util, logger, opt, curves
 import os
 import util.tensorWriter as vs
 from collections import OrderedDict
-import tensorboardX
 
 log = logger.logger()
 
@@ -25,9 +24,7 @@ class optimizer(base_optimizer):
         self._get_model(model)
         self._get_aux_nets()
         self._define_optim()
-        # self.writer = curves.writer(log_dir=self.opt.save_dir + '/log')
-        util.mkdir(self.opt.save_dir+'/log')
-        self.writer = tensorboardX.SummaryWriter(log_dir=self.opt.save_dir + '/log')
+        self.writer = curves.writer(log_dir=self.opt.save_dir + '/log')
         if self.opt.continue_train:
             self.load()
 
@@ -39,7 +36,7 @@ class optimizer(base_optimizer):
     def set_input(self, input):
         self.image, self.attribute = input
         self.image = util.toVariable(self.image).cuda()
-        self.attribute = [util.toVariable(att.cuda()) for att in self.attribute]
+        self.attribute = [att.cuda() for att in self.attribute]
 
     def zero_grad(self):
         self.encoder.zero_grad()
@@ -49,9 +46,9 @@ class optimizer(base_optimizer):
         self.KGTransform.zero_grad()
 
     def _get_aux_nets(self):
-        self.vgg_teacher = nn.DataParallel(base_network.VGG(pretrained=True)).cuda()
-        self.perceptural_loss = perceptural_loss().cuda()
-        self.KGTransform = nn.DataParallel(nn.Conv2d(512, 512, 1)).cuda()
+        self.vgg_teacher = nn.DataParallel(base_network.VGG(pretrained=True))
+        self.perceptural_loss = perceptural_loss()
+        self.KGTransform = nn.DataParallel(nn.Conv2d(512, 512, 1))
 
     def _get_model(self, model):
         encoder, interp_net, decoder, discrim = model
@@ -71,25 +68,25 @@ class optimizer(base_optimizer):
     def _define_optim(self):
         self.optim_encoder = torch.optim.Adam(self.encoder.parameters(), lr=1e-4, betas=[0.5, 0.999])
         self.optim_interp = torch.optim.Adam(self.interp_net.parameters(), lr=1e-4, betas=[0.5, 0.999])
-        self.optim_decoder = torch.optim.Adam(self.decoder.parameters(), lr=1e-4,betas=[0.5, 0.999])
+        self.optim_decoder = torch.optim.Adam(self.decoder.parameters(), lr=1e-4, betas=[0.5, 0.999])
         self.optim_discrim = torch.optim.Adam(self.discrim.parameters(), lr=1e-4, betas=[0.5, 0.999])
-        self.optim_KGTransform = torch.optim.Adam(self.KGTransform.parameters(), lr=1e-4)
+        self.optim_KGTransform = torch.optim.Adam(self.KGTransform.parameters(), lr=1e-4, betas=[0.5, 0.999])
 
     def load(self, label='latest'):
         save_dir = self.opt.save_dir + '/{}-{}.pth'
-        self._check_and_load(self.encoder, save_dir.format('encoder', label))
-        self._check_and_load(self.interp_net, save_dir.format('interp_net', label))
+        # self._check_and_load(self.encoder, save_dir.format('encoder', label))
+        # self._check_and_load(self.interp_net, save_dir.format('interp_net', label))
         self._check_and_load(self.decoder, save_dir.format('decoder', label))
-        self._check_and_load(self.discrim, save_dir.format('discrim', label))
-        self._check_and_load(self.KGTransform, save_dir.format('KGTransform', label))
+        # self._check_and_load(self.discrim, save_dir.format('discrim', label))
+        # self._check_and_load(self.KGTransform, save_dir.format('KGTransform', label))
 
     def save(self, label='latest'):
         save_dir = self.opt.save_dir + '/{}-{}.pth'
-        torch.save(self.encoder.state_dict(), save_dir.format('encoder', label))
-        torch.save(self.interp_net.state_dict(), save_dir.format('interp_net', label))
+        # torch.save(self.encoder.state_dict(), save_dir.format('encoder', label))
+        # torch.save(self.interp_net.state_dict(), save_dir.format('interp_net', label))
         torch.save(self.decoder.state_dict(), save_dir.format('decoder', label))
-        torch.save(self.discrim.state_dict(), save_dir.format('discrim', label))
-        torch.save(self.KGTransform.state_dict(), save_dir.format('KGTransform', label))
+        # torch.save(self.discrim.state_dict(), save_dir.format('discrim', label))
+        # torch.save(self.KGTransform.state_dict(), save_dir.format('KGTransform', label))
 
     def optimize_parameters(self, global_step):
         self.encoder.train()
@@ -99,7 +96,7 @@ class optimizer(base_optimizer):
         self.KGTransform.train()
         self.loss = OrderedDict()
         ''' define v '''
-        self.v = util.toVariable(self.generate_select_vector()).cuda()
+        self.v = self.generate_select_vector()
         self.rand_idx = torch.randperm(self.image.size(0)).cuda()
         self.image_permute = self.image[self.rand_idx]
         self.attr_permute = []
@@ -118,19 +115,19 @@ class optimizer(base_optimizer):
         self.compute_dec_loss().backward(retain_graph=True)
         self.optim_decoder.step()
 
-        self.zero_grad()
-        self.compute_discrim_loss().backward(retain_graph=True)
-        self.optim_discrim.step()
-
-        self.zero_grad()
-        self.compute_KGTransform_loss().backward(retain_graph=True)
-        self.optim_KGTransform.step()
-
-        if global_step % self.opt.n_discrim == 0:
-            self.zero_grad()
-            self.compute_enc_int_loss().backward()
-            self.optim_encoder.step()
-            self.optim_interp.step()
+        # self.zero_grad()
+        # self.compute_discrim_loss().backward(retain_graph=True)
+        # self.optim_discrim.step()
+        #
+        # self.zero_grad()
+        # self.compute_KGTransform_loss().backward(retain_graph=True)
+        # self.optim_KGTransform.step()
+        #
+        # if global_step % self.opt.n_discrim == 0:
+        #     self.zero_grad()
+        #     self.compute_enc_int_loss().backward()
+        #     self.optim_encoder.step()
+        #     self.optim_interp.step()
 
     def compute_dec_loss(self):
         self.loss['dec'] = 0
@@ -152,7 +149,7 @@ class optimizer(base_optimizer):
         self.loss['discrim_gp'] = util.gradient_penalty(gp_interpolate, discrim_gp_interpolated) * 100.
         self.loss['discrim'] += self.loss['discrim_gp']
         ''' the GAN loss '''
-        self.loss['discrim_gan'] = (discrim_interp - discrim_real).mean()
+        self.loss['discrim_gan'] = discrim_interp.mean() - discrim_real.mean()
         self.loss['discrim'] += self.loss['discrim_gan']
         ''' the attribute classification loss '''
         att_detach = [att.detach() for att in self.attribute]
@@ -182,10 +179,6 @@ class optimizer(base_optimizer):
                                           self.generate_select_vector(type='select_all'))
         self.loss['enc_int_all'] = nn.MSELoss()(feat_interp_all, self.feat_permute.detach())
         self.loss['enc_int'] += self.loss['enc_int_all']
-        # feat_interp_none = self.interp_net(self.feat.detach(), self.feat_permute.detach(),
-        #                                   self.generate_select_vector(type='select_none'))
-        # self.loss['enc_int_none'] = nn.MSELoss()(feat_interp_none, self.feat.detach())
-        # self.loss['enc_int'] += self.loss['enc_int_none']
         ''' reconstruction loss '''
         im_out = self.decoder(self.feat)
         self.loss['enc_int_mse'] = nn.MSELoss()(im_out, self.image.detach())
@@ -213,7 +206,7 @@ class optimizer(base_optimizer):
         feat1 = self.encoder(img1)
         feat2 = self.encoder(img2)
         result_map = []
-        n_branches = self.interp_net.module.n_branch
+        n_branches = self.interp_net.n_branch
         for attr_idx in range(n_branches):
             result_row = [img1.data.cpu()]
             for strength in [0, 0.5, 1]:
@@ -246,21 +239,7 @@ class optimizer(base_optimizer):
         self.interp_net.eval()
         self.discrim.eval()
         self.decoder.eval()
-        n_pairs = 20
-        save_path_single = os.path.join(self.opt.save_dir, 'samples/single')
-        util.mkdir(save_path_single)
-        map_single = []
-        n_branches = self.interp_net.module.n_branch
-        for i in range(n_pairs):
-            img1, _ = self.test_dataset[i]
-            img2, _ = self.test_dataset[i + 1]
-            img1 = util.toVariable(img1).cuda()
-            img2 = util.toVariable(img2).cuda()
-            map_single += [self.interp_test(img1, img2)]
-        map_single = torch.cat(map_single, dim=0)
-        map_single = vs.untransformTensor(map_single)
-        vs.writeTensor(os.path.join(save_path_single, '%d.jpg' % global_step), map_single, nRow=2)
-        ##################################################
+        n_branches = self.interp_net.n_branch
         save_path = os.path.join(self.opt.save_dir, 'interp_curve')
         util.mkdir(save_path)
         im_out = [self.image.data.cpu()]
@@ -269,15 +248,7 @@ class optimizer(base_optimizer):
         feat = self.interp_net(self.feat, self.feat_permute, v)
         out_now = self.decoder(feat, self.image)
         im_out += [out_now.data.cpu()]
-        for i in range(n_branches):
-            log(i)
-            v = torch.zeros(self.image.size(0), n_branches)
-            v[:, 0:i + 1] = 1
-            v = util.toVariable(v).cuda()
-            feat = self.interp_net(self.feat.detach(), self.feat_permute.detach(), v)
-            out_now = self.decoder(feat.detach(), self.image)
-            im_out += [out_now.data.cpu()]
-        im_out += [self.image_permute.data.cpu()]
+
         im_out = [util.toVariable(tmp) for tmp in im_out]
         im_out = torch.cat(im_out, dim=0)
         im_out = vs.untransformTensor(im_out.data.cpu())
@@ -328,7 +299,7 @@ class optimizer(base_optimizer):
             raise NotImplemented
 
     def generate_select_vector(self, type='uniform'):
-        n_branches = self.interp_net.module.n_branch
+        n_branches = self.interp_net.n_branch
         return self._generate_select_vector(n_branches, type)
 
     def random_interpolate(self, gt, pred):

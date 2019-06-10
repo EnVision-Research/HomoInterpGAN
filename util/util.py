@@ -135,7 +135,6 @@ def print_network(net, filepath=None):
             f.write('Total number of parameters: %d' % num_params)
 
 
-from .visualization import writeTensor
 
 
 # -------------------------- General ---------------------------------#

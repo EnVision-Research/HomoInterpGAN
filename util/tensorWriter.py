@@ -1,9 +1,3 @@
-'''
-This script will collect the visualization of the network.
-
-1. the correlation between different layers
-2.
-'''
 import torch
 import numpy as np
 from .logger import logger
@@ -15,32 +9,6 @@ from .util import toTensor
 import imageio
 import cv2
 
-
-def layer_correlation(layer1, layer2):
-    '''
-    compute the channel-wise correlation of two layers
-
-    layer 1 and layer 2 are tensors, and located on CPU
-    nBatch x nChannel x Height x Width
-
-
-    return nBatch x nChannel-1 x nChannel-2
-    '''
-    shape1 = layer1.size()
-    shape2 = layer2.size()
-    log(shape1)
-    log(shape2)
-
-    feat1 = layer1.view(shape1[0], shape1[1] * shape1[2])
-    feat2 = layer2.view(shape2[0], shape2[1] * shape2[2])
-    m12 = feat1.mm(feat2.transpose(0, 1))
-    log(m12)
-    m1 = torch.diag(1 / torch.sqrt(torch.diag(feat1.mm(feat1.transpose(0, 1)))))
-    log(m1)
-    m2 = torch.diag(1 / torch.sqrt(torch.diag(feat2.mm(feat2.transpose(0, 1)))))
-    log(m2)
-    corr = m1.mm(m12).mm(m2)
-    return corr
 
 
 def writeTensor(save_path, tensor, nRow=16, row_first=False):

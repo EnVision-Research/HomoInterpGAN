@@ -14,32 +14,6 @@ class BaseDataset(data.Dataset):
     def initialize(self, opt):
         pass
 
-
-class FitToQuantum():
-    def __init__(self, quantum=112):
-        self.quantum = float(quantum)
-
-    def __call__(self, img):
-        quantum = self.quantum
-        size = img.size()
-
-        if img.size(1) % int(quantum) == 0:
-            pad_w = 0
-        else:
-            pad_w = int((quantum - img.size(1) % int(quantum)) / 2)
-
-        if img.size(2) % int(quantum) == 0:
-            pad_h = 0
-        else:
-            pad_h = int((quantum - img.size(2) % int(quantum)) / 2)
-
-        res = torch.zeros(size[0],
-                          int(math.ceil(size[1] / quantum) * quantum),
-                          int(math.ceil(size[2] / quantum) * quantum))
-        res[:, pad_w:(pad_w + size[1]), pad_h:(pad_h + size[2])].copy_(img)
-        return res
-
-
 def get_transform(opt):
     transform_list = []
     if opt.resize_or_crop == 'resize_and_crop':

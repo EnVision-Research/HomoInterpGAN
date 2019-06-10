@@ -1,4 +1,4 @@
-from util.visualization import *
+from util.tensorWriter import *
 
 def test_layer_correlation():
     a=torch.rand((2,4,4))
