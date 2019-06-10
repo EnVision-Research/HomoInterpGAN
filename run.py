@@ -85,9 +85,9 @@ class Engine(object):
         return optim
 
     def load_dataset(self):
-        with open('info/celeba-train-flip.txt', 'r') as f:
+        with open('info/celeba-train.txt', 'r') as f:
             train_list = [os.path.join(self.args.data_dir, tmp.rstrip()) for tmp in f]
-        with open('info/celeba-test-flip.txt', 'r') as f:
+        with open('info/celeba-test.txt', 'r') as f:
             test_list = [os.path.join(self.args.data_dir, tmp.rstrip()) for tmp in f]
         train_dataset = attributeDataset.GrouppedAttrDataset(image_list=train_list, attributes=self.args.attr,
                                                              csv_path='info/celeba-with-orientation.csv')
