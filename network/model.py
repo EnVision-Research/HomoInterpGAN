@@ -116,7 +116,7 @@ class decoder(nn.Module):
             state_dict = torch.utils.model_zoo.load_url(model_path, 'checkpoints/vgg')
             self.load_state_dict(state_dict)
 
-    def forward(self, x, img=None):
+    def forward(self, x):
         y = self.model(x)
         return y
 

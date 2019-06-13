@@ -134,7 +134,7 @@ class optimizer(base_optimizer):
 
     def compute_dec_loss(self):
         self.loss['dec'] = 0
-        im_out = self.decoder(self.feat, self.image)
+        im_out = self.decoder(self.feat)
         self.loss['dec_per'] = self.perceptural_loss(im_out, self.image)
         self.loss['dec'] += self.loss['dec_per']
         self.loss['dec_mse'] = nn.MSELoss()(im_out, self.image.detach())
@@ -221,7 +221,7 @@ class optimizer(base_optimizer):
                 attr_vec[:, attr_idx] = strength
                 attr_vec = util.toVariable(attr_vec).cuda()
                 interp_feat = self.interp_net(feat1, feat2, attr_vec)
-                out_tmp = self.decoder(interp_feat, img1)
+                out_tmp = self.decoder(interp_feat)
                 result_row += [out_tmp.data.cpu()]
             result_row += [img2.data.cpu()]
             result_row = torch.cat(result_row, dim=3)
@@ -232,7 +232,7 @@ class optimizer(base_optimizer):
             attr_vec = torch.ones(1, n_branches) * strength
             attr_vec = util.toVariable(attr_vec).cuda()
             interp_feat = self.interp_net(feat1, feat2, attr_vec)
-            out_tmp = self.decoder(interp_feat, img1)
+            out_tmp = self.decoder(interp_feat)
             result_row += [out_tmp.data.cpu()]
         result_row += [img2.data.cpu()]
         result_row = torch.cat(result_row, dim=3)
@@ -267,7 +267,7 @@ class optimizer(base_optimizer):
         v = torch.zeros(self.image.size(0), n_branches)
         v = util.toVariable(v).cuda()
         feat = self.interp_net(self.feat, self.feat_permute, v)
-        out_now = self.decoder(feat, self.image)
+        out_now = self.decoder(feat)
         im_out += [out_now.data.cpu()]
         for i in range(n_branches):
             log(i)
@@ -275,7 +275,7 @@ class optimizer(base_optimizer):
             v[:, 0:i + 1] = 1
             v = util.toVariable(v).cuda()
             feat = self.interp_net(self.feat.detach(), self.feat_permute.detach(), v)
-            out_now = self.decoder(feat.detach(), self.image)
+            out_now = self.decoder(feat.detach())
             im_out += [out_now.data.cpu()]
         im_out += [self.image_permute.data.cpu()]
         im_out = [util.toVariable(tmp) for tmp in im_out]
