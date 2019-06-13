@@ -71,7 +71,7 @@ class optimizer(base_optimizer):
     def _define_optim(self):
         self.optim_encoder = torch.optim.Adam(self.encoder.parameters(), lr=1e-4, betas=[0.5, 0.999])
         self.optim_interp = torch.optim.Adam(self.interp_net.parameters(), lr=1e-4, betas=[0.5, 0.999])
-        self.optim_decoder = torch.optim.Adam(self.decoder.parameters(), lr=1e-4,betas=[0.5, 0.999])
+        self.optim_decoder = torch.optim.Adam(self.decoder.parameters(), lr=1e-4)
         self.optim_discrim = torch.optim.Adam(self.discrim.parameters(), lr=1e-4, betas=[0.5, 0.999])
         self.optim_KGTransform = torch.optim.Adam(self.KGTransform.parameters(), lr=1e-4)
 
