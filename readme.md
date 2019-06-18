@@ -93,7 +93,7 @@ We have also provided a pretrained model [here](https://www.dropbox.com/sh/31dki
 
 # Reference
 
-[Ying-Cong Chen](http://appsrv.cse.cuhk.edu.hk/~ycchen/), Xiaogang Xu, Zhuotao Tian, [Jiaya Jia](http://jiaya.me/), "Homomorphic Latent Space Interpolation for Unpaired Image-to-image Translation" , *Computer Vision and Pattern Recognition (CVPR), 2019*
+[Ying-Cong Chen](http://appsrv.cse.cuhk.edu.hk/~ycchen/), Xiaogang Xu, Zhuotao Tian, [Jiaya Jia](http://jiaya.me/), "Homomorphic Latent Space Interpolation for Unpaired Image-to-image Translation" , *Computer Vision and Pattern Recognition (CVPR), 2019* [PDF](<http://appsrv.cse.cuhk.edu.hk/~ycchen/pdfFiles/HomoInterp.pdf>)
 
 ```
 @inproceedings{chen2019Homomorphic,
