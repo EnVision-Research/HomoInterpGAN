@@ -34,6 +34,7 @@ class Engine(object):
         parser_train.add_argument('-ct', '--continue_train', action='store_true',
                                   help='if true, then load model stored in the save_dir')
         parser_train.add_argument('-e', '--epoch', type=int, default=10000, help='the training epoch')
+        parser_train.add_argument('--random_crop_bias', type=int, default=0, help='data augmentation: randomly use different bias for cropping')
 
         ''' arguments for testing '''
         shared_parser_test = argparse.ArgumentParser(add_help=False)
@@ -90,7 +91,8 @@ class Engine(object):
         with open('info/celeba-test.txt', 'r') as f:
             test_list = [os.path.join(self.args.data_dir, tmp.rstrip()) for tmp in f]
         train_dataset = attributeDataset.GrouppedAttrDataset(image_list=train_list, attributes=self.args.attr,
-                                                             csv_path='info/celeba-with-orientation.csv')
+                                                             csv_path='info/celeba-with-orientation.csv', 
+                                                             random_crop_bias=self.args.random_crop_bias)
         test_dataset = attributeDataset.GrouppedAttrDataset(image_list=test_list, attributes=self.args.attr,
                                                             csv_path='info/celeba-with-orientation.csv')
         return train_dataset, test_dataset

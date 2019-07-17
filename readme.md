@@ -91,6 +91,11 @@ We have also provided a pretrained model [here](https://www.dropbox.com/sh/31dki
 |      4       |    Hair style     |        Bald, Receding_Hairline, Bangs         |
 |      5       |        Age        |                     Young                     |
 
+
+# Updates
+
+- Jun 17, 2019: It is observed that the face alignment tool is not perfect, and the results of "Testing on unaligned images" does not perform as well as results in CelebA dataset. To make the model less sensitive of the alignment issue, we add random shifting in center_crop during training. The shifting range can be controlled by "--random_crop_bias". We have updated the pretarined model by fine-tuning it with "random_crop_bias=10", which leads to better results in unaligned images. 
+
 # Reference
 
 [Ying-Cong Chen](http://appsrv.cse.cuhk.edu.hk/~ycchen/), Xiaogang Xu, Zhuotao Tian, [Jiaya Jia](http://jiaya.me/), "Homomorphic Latent Space Interpolation for Unpaired Image-to-image Translation" , *Computer Vision and Pattern Recognition (CVPR), 2019* [PDF](<http://appsrv.cse.cuhk.edu.hk/~ycchen/pdfFiles/HomoInterp.pdf>)

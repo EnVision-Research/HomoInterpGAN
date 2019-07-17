@@ -190,7 +190,7 @@ class GrouppedAttrDataset(base_dataset.BaseDataset):
 
     def __init__(self, image_list, attributes, transform=forward_transform, scale=(128, 128), crop_size=(160, 160),
                  bias=(0, 15),
-                 csv_path='info/celeba-with-orientation.csv', csv_split=','):
+                 csv_path='info/celeba-with-orientation.csv', csv_split=',', random_crop_bias=0):
         super(GrouppedAttrDataset, self).__init__()
         self.files = []
         supported_format = ['jpg', 'png', 'jpeg']
@@ -213,11 +213,12 @@ class GrouppedAttrDataset(base_dataset.BaseDataset):
         self.orientation = pd.concat((self.frame['name'], self.frame['orientation']), axis=1)
         self.orientation = self.orientation.set_index('name').to_dict()['orientation']
         self.crop_size = crop_size
+        self.random_crop_bias = random_crop_bias
 
         # parse the "attribtues"
         attributes = attributes.split(',')  # each ',' separates a branch.
         f2 = self.frame['name'].to_frame()
-        f3 = self.frame.iloc[:, 1:] > 0
+        f3 = self.frame.replace(-1, 0)
 
         for attrs in attributes:
             attrs_split = attrs.split('@')  # '@' separates attributes inside each branch.`
@@ -251,7 +252,10 @@ class GrouppedAttrDataset(base_dataset.BaseDataset):
                 raise RuntimeError
 
             if self.crop_size[0] > 0:
-                img = util.center_crop(img, self.crop_size, self.bias)
+                if self.random_crop_bias > 0:
+                    img = util.random_crop(img, self.crop_size, (self.random_crop_bias, self.random_crop_bias))
+                else:
+                    img = util.center_crop(img, self.crop_size, self.bias)
             if self.scale[0] > 0:
                 img = scipy.misc.imresize(img, [self.scale[0], self.scale[1]])
             # img = img[self.crop_size[0]:shape[0] - self.crop_size[0], self.crop_size[1]:shape[1] - self.crop_size[1], :]
@@ -266,3 +270,4 @@ class GrouppedAttrDataset(base_dataset.BaseDataset):
 
     def __len__(self):
         return len(self.files)
+

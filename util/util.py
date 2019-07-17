@@ -12,6 +12,7 @@ import tempfile
 import cv2
 import imageio
 import math
+import time
 
 try:
     from requests.utils import urlparse
@@ -139,9 +140,26 @@ def print_network(net, filepath=None):
 
 # -------------------------- General ---------------------------------#
 
-def readRGB(uri):
-    img = cv2.imread(uri)
+def readRGB(url):
+    img = cv2.imread(url)
+    # img = img[:, :, :3]
     return img[:, :, [2, 1, 0]]
+
+
+def str2bool(v):
+    ''' 
+    example:
+    parser.add_argument('--sth', default='true', type=str2bool)
+    '''
+
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def np_onehot_1d(label, codeLen):
@@ -214,13 +232,27 @@ def center_crop(img, target_size, bias=(0,0)):
     '''
     diff_x = img.shape[0] - target_size[0]
     diff_y = img.shape[1] - target_size[1]
-    start_x = int(diff_x // 2) + bias[0]
-    start_y = int(diff_y // 2) + bias[1]
+    img = cv2.copyMakeBorder(img, np.abs(bias[0]), np.abs(bias[0]), np.abs(bias[1]), np.abs(bias[1]), cv2.BORDER_REPLICATE)
+    # print(img.shape)
+
+    start_x = int(diff_x // 2) + bias[0] + np.abs(bias[0])
+    start_y = int(diff_y // 2) + bias[1] + np.abs(bias[1])
+    # print(start_x, start_x+target_size[0])
+    # print(start_y, start_y + target_size[1])
     if len(img.shape) > 2:
         img2 = img[start_x:start_x + target_size[0], start_y:start_y + target_size[1], :]
     else:
         img2 = img[start_x:start_x + target_size[0], start_y:start_y + target_size[1]]
     return img2
+
+def random_crop(img, target_size, random_range):
+    ''' 
+    randomly choose the bias of center cropping
+    '''
+    bias_x = np.random.randint(random_range[0]*2+1) - random_range[0]
+    bias_y = np.random.randint(random_range[1]*2+1) - random_range[1]
+    # print(bias_x, bias_y)
+    return center_crop(img, target_size, (bias_x, bias_y))
 
 def center_paste(img_cropped, img_src, bias):
     '''
@@ -335,3 +367,6 @@ def gradient_penalty(xin, yout, mask=None):
     gradients = gradients.view(gradients.size(0), -1)
     gp = ((gradients.norm(2, dim=1) - 1.) ** 2).mean()
     return gp
+
+def get_time():
+    return time.asctime(time.localtime(time.time()))
