@@ -11,4 +11,4 @@ opencv_python==4.1.0.25
 dlib==19.17.0
 Pillow==6.0.0
 tensorboardX==1.6
-PyYAML==5.1.1
+PyYAML==5.4
